@@ -17,7 +17,7 @@
 
 <p align="center">手机扫码即可下载安装包（v1.0.0，约 47.7 MB）</p>
 
-也可以直接打开 [Releases 页面](https://github.com/handsome-lyl/study_notebook/releases/latest) 下载 APK。
+也可以直接打开 [Releases 页面](https://github.com/handsome-lyl/eNoteBook/releases/latest) 下载 APK。
 
 > 安装时如提示「未知来源应用」，在系统设置中允许该来源安装即可。
 
