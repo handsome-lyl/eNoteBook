@@ -18,6 +18,36 @@ Future<String?> askEntryTitle(
   );
 }
 
+/// 删除前的二次确认对话框。返回 true 表示用户确认删除。
+Future<bool> confirmDelete(
+  BuildContext context, {
+  required String title,
+  required String message,
+}) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      final colors = Theme.of(dialogContext).colorScheme;
+      return AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: colors.error),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('删除'),
+          ),
+        ],
+      );
+    },
+  );
+  return ok ?? false;
+}
+
 class _TitleDialog extends StatefulWidget {
   const _TitleDialog({
     required this.title,

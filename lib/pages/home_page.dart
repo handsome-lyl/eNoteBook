@@ -170,8 +170,27 @@ class _HomePageState extends State<HomePage>
     if (mounted) setState(() {});
   }
 
-  Future<void> _showAuthDialog() async {
-    final name = await showDialog<String>(
+  /// 删除卡片。教材 / 笔记本会连同其下单页笔记一起删除。
+  Future<void> _deleteEntry(Entry entry) async {
+    final childCount =
+        entry.isContainer ? _store.notesUnder(entry.id).length : 0;
+    final message = childCount > 0
+        ? '「${entry.title}」及其下的 $childCount 页笔记将一并删除，且无法恢复。'
+        : '「${entry.title}」删除后无法恢复。';
+    final ok = await confirmDelete(
+      context,
+      title: '删除${entry.kind.label}？',
+      message: message,
+    );
+    if (!mounted || !ok) return;
+    _store.deleteEntry(entry);
+    _refreshList();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('已删除「${entry.title}」')),
+    );
+  }
+
+  Future<void> _showAuthDialog() async {    final name = await showDialog<String>(
       context: context,
       builder: (_) => const _AuthDialog(),
     );
@@ -478,6 +497,7 @@ class _HomePageState extends State<HomePage>
         child: EntryCard(
           entry: entry,
           onTap: () => _openEntry(entry),
+          onDelete: () => _deleteEntry(entry),
         ),
       ),
     );

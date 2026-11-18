@@ -9,10 +9,16 @@ import 'entry_cover.dart';
 /// 鼠标悬浮时使用 AnimatedScale + AnimatedContainer 做隐式过渡
 /// （教材 9.7：动画过渡组件）。
 class EntryCard extends StatefulWidget {
-  const EntryCard({super.key, required this.entry, required this.onTap});
+  const EntryCard({
+    super.key,
+    required this.entry,
+    required this.onTap,
+    required this.onDelete,
+  });
 
   final Entry entry;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   @override
   State<EntryCard> createState() => _EntryCardState();
@@ -53,58 +59,95 @@ class _EntryCardState extends State<EntryCard> {
                     ]
                   : const <BoxShadow>[],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Stack(
               children: <Widget>[
-                Expanded(
-                  child: EntryCover(
-                    entry: widget.entry,
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(16)),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        widget.entry.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleSmall
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    Expanded(
+                      child: EntryCover(
+                        entry: widget.entry,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
                       ),
-                      const SizedBox(height: 6),
-                      Row(
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: colors.primaryContainer,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              widget.entry.kind.label,
-                              style: theme.textTheme.labelSmall
-                                  ?.copyWith(color: colors.onPrimaryContainer),
-                            ),
+                          Text(
+                            widget.entry.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w600),
                           ),
-                          const Spacer(),
-                          Flexible(
-                            child: Text(
-                              formatEntryTime(widget.entry.updatedAt),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(color: colors.onSurfaceVariant),
-                            ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: <Widget>[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: colors.primaryContainer,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  widget.entry.kind.label,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                      color: colors.onPrimaryContainer),
+                                ),
+                              ),
+                              const Spacer(),
+                              Flexible(
+                                child: Text(
+                                  formatEntryTime(widget.entry.updatedAt),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                      color: colors.onSurfaceVariant),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Material(
+                    color: colors.surface.withValues(alpha: 0.86),
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: PopupMenuButton<String>(
+                      tooltip: '更多操作',
+                      iconSize: 18,
+                      padding: EdgeInsets.zero,
+                      icon: Icon(Icons.more_vert,
+                          color: colors.onSurfaceVariant),
+                      onSelected: (value) {
+                        if (value == 'delete') widget.onDelete();
+                      },
+                      itemBuilder: (_) => const <PopupMenuEntry<String>>[
+                        PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              Icon(Icons.delete_outline, size: 18),
+                              SizedBox(width: 10),
+                              Text('删除'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

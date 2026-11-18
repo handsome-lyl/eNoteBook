@@ -102,6 +102,15 @@ class AppStore {
     entry.updatedAt = DateTime.now();
   }
 
+  /// 删除条目。若删除的是笔记本或教材，其下的单页笔记一并删除，
+  /// 避免留下无法访问的孤儿笔记。
+  void deleteEntry(Entry entry) {
+    _entries.removeWhere((e) => e.id == entry.id);
+    if (entry.isContainer) {
+      _entries.removeWhere((e) => e.parentId == entry.id);
+    }
+  }
+
   /// 初始示例数据，便于直接看到动画效果
   void _seed() {
     createTextbook(

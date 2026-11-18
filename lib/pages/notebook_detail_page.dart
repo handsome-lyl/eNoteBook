@@ -50,6 +50,17 @@ class _NotebookDetailPageState extends State<NotebookDetailPage> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _deleteNote(Entry note) async {
+    final ok = await confirmDelete(
+      context,
+      title: '删除单页笔记？',
+      message: '「${note.title}」删除后无法恢复。',
+    );
+    if (!mounted || !ok) return;
+    widget.store.deleteEntry(note);
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -120,7 +131,27 @@ class _NotebookDetailPageState extends State<NotebookDetailPage> {
                             ),
                             subtitle:
                                 Text('更新于 ${formatEntryTime(note.updatedAt)}'),
-                            trailing: const Icon(Icons.chevron_right),
+                            trailing: PopupMenuButton<String>(
+                              tooltip: '更多操作',
+                              icon: const Icon(Icons.more_vert),
+                              onSelected: (value) {
+                                if (value == 'delete') _deleteNote(note);
+                              },
+                              itemBuilder: (_) =>
+                                  const <PopupMenuEntry<String>>[
+                                PopupMenuItem<String>(
+                                  value: 'delete',
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: <Widget>[
+                                      Icon(Icons.delete_outline, size: 18),
+                                      SizedBox(width: 10),
+                                      Text('删除'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                             onTap: () => _openNote(note),
                           );
                         },
