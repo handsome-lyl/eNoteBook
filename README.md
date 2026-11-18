@@ -15,7 +15,7 @@
   <img src="docs/download_qr.png" width="240" alt="扫码下载 Android 安装包" />
 </p>
 
-<p align="center">手机扫码即可下载安装包（v1.0.0，约 47.7 MB）</p>
+<p align="center">手机扫码即可下载安装包（v1.1.0，约 47.7 MB）</p>
 
 也可以直接打开 [Releases 页面](https://github.com/handsome-lyl/eNoteBook/releases/latest) 下载 APK。
 
