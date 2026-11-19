@@ -3,7 +3,7 @@
 一个基于 Flutter 的电子笔记本课程作业，同时支持 **Android 手机** 与 **Web 浏览器**。
 应用把「教材、笔记本、单页笔记」三类内容统一成卡片展示，并大量使用《Flutter 实战》第 9 章讲解的动画机制实现页面过渡与交互动效。
 
-- 技术栈：Flutter 3.x / Material 3
+- 技术栈：Flutter 3.x / Material 3 / pdfx（PDF 页面渲染）
 - 主题色：`#1565C0`（Material 3 `colorSchemeSeed`）
 - 数据：本地持久化（Android 端使用 SharedPreferences，Web 端使用 localStorage），重启或刷新后自动恢复
 
@@ -40,12 +40,12 @@
 ### 2. 教材导入
 
 - 支持 `.txt`、`.md`、`.pdf` 三种格式
-- 文本文件按 UTF-8 解码（容错模式）
-- PDF 使用内置的纯 Dart 解析器（`lib/utils/pdf_extract.dart`）提取正文，不依赖任何第三方原生库
-  - 支持 FlateDecode 压缩内容流与 PDF 1.5+ 对象流（ObjStm）
-  - 支持 Type0/CID 字体，通过 ToUnicode CMap 还原中文，可导入人教版等中文教材
-  - 解析在后台 isolate 执行（Web 端逐页让出事件循环），导入时显示「已解析 x / y 页」进度，不会卡死界面
-- 导入后可重命名教材，阅读页支持长文滚动
+- 文本文件按 UTF-8 解码（容错模式），以文字方式滚动阅读
+- PDF 教材按页原样渲染，文字、插图、表格、公式与版式完整保留，不会出现乱码或插图丢失
+  - Android 使用系统 `PdfRenderer` 渲染，无需额外原生库
+  - Web 使用内置的 PDF.js（静态资源随项目打包在 `web/pdfjs/`，无需访问外网）
+  - 阅读页支持双指缩放、滚动翻页
+- 导入后可重命名教材
 
 ### 3. 单页笔记编辑
 
@@ -177,7 +177,7 @@ lib/
 ├── pages/
 │   ├── home_page.dart           # 主页：响应式布局、搜索、卡片网格
 │   ├── notebook_detail_page.dart# 笔记本详情与笔记列表
-│   ├── textbook_reader_page.dart# 教材阅读页
+│   ├── textbook_reader_page.dart# 教材阅读（PDF 按页渲染 / 文本滚动）
 │   └── note_editor_page.dart    # 单页笔记编辑（文字 + 图片混排）
 ├── widgets/
 │   ├── entry_cover.dart         # 卡片封面（Hero）
@@ -186,7 +186,8 @@ lib/
 │   └── dialogs.dart             # 命名对话框
 └── utils/
     ├── content_blocks.dart      # 正文块解析与序列化
-    ├── pdf_extract.dart         # 纯 Dart PDF 文本提取
+    ├── pdf_store.dart           # PDF 文件保存 / 读取（IO 与 Web 分支）
+    ├── pdf_extract.dart         # 纯 Dart PDF 文本提取（工具与测试）
     └── format_time.dart         # 时间格式化
 
 test/
@@ -204,5 +205,5 @@ test/
 ## 说明与限制
 
 - **本地存储容量**：Android 端数据存于 SharedPreferences，容量充足；Web 端存于 localStorage，浏览器一般限制在 5 MB 左右，插入大量图片后可能保存失败（会提示「存储空间可能不足」）。
-- **PDF 文本提取**：解析内容流的 `Tj` / `TJ` 操作符，并解压 FlateDecode 流、展开对象流、按 ToUnicode CMap 还原中文；纯图片扫描件（没有文字层）、加密 PDF 或使用未知编码的字体仍可能无法提取，此时会给出提示。大文件在移动端于后台 isolate 解析，Web 端逐页让出事件循环并显示进度。
+- **PDF 教材**：导入时保存原始 PDF 文件并按页渲染，完整还原文字与插图；Android 端文件保存在应用文档目录，Web 端为会话内存，刷新页面后需重新导入。原纯文本渲染与 `lib/utils/pdf_extract.dart` 保留作为工具与测试用途。
 - **图片存储**：图片以 Base64 字符串随笔记保存在本地存储中，未单独写入文件或数据库。

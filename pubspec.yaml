@@ -37,6 +37,8 @@ dependencies:
   file_picker: ^13.3.3
   shared_preferences: ^2.5.6
   archive: ^4.7.1
+  pdfx: ^2.11.0
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:
@@ -54,6 +56,8 @@ dev_dependencies:
 # 因此固定到不依赖 jni 的 2.4.x 版本。
 dependency_overrides:
   shared_preferences_android: 2.4.28
+  # 2.3.x 依赖 jni（CMake 原生构建在中文用户名路径下会失败）
+  path_provider_android: 2.2.17
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +8,7 @@ import '../app_route.dart';
 import '../models/entry.dart';
 import '../store/app_store.dart';
 import '../utils/format_time.dart';
-import '../utils/pdf_extract.dart';
+import '../utils/pdf_store.dart';
 import '../widgets/add_sheet.dart';
 import '../widgets/dialogs.dart';
 import '../widgets/entry_card.dart';
@@ -96,70 +97,42 @@ class _HomePageState extends State<HomePage>
     if (!mounted) return;
     final ext = file.name.toLowerCase().split('.').last;
 
-    String content;
+    // PDF：保存原文件，阅读页按页渲染，完整保留文字与插图
     if (ext == 'pdf') {
-      final progress = ValueNotifier<int>(0);
-      final totalPages = ValueNotifier<int>(0);
-      showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          title: const Text('正在解析 PDF'),
-          content: ValueListenableBuilder<int>(
-            valueListenable: progress,
-            builder: (context, done, _) {
-              final total = totalPages.value;
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  const LinearProgressIndicator(),
-                  const SizedBox(height: 12),
-                  Text(total == 0 ? '正在读取文件结构…' : '已解析 $done / $total 页'),
-                ],
-              );
-            },
-          ),
-        ),
+      final title = await askEntryTitle(
+        context,
+        title: '为教材命名',
+        initialValue: _stripExtension(file.name),
+        hint: '输入教材名称',
       );
+      if (!mounted || title == null) return;
+
+      Uint8List bytes;
       try {
-        await Future<void>.delayed(const Duration(milliseconds: 80));
-        final bytes = await file.readAsBytes();
-        content = await extractPdfText(
-          bytes,
-          onProgress: (done, total) {
-            progress.value = done;
-            totalPages.value = total;
-          },
-        );
+        bytes = await file.readAsBytes();
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('读取文件失败: $e')),
         );
         return;
-      } finally {
-        if (mounted) Navigator.of(context, rootNavigator: true).pop();
       }
+      final textbook = _store.createTextbook(title, '');
+      textbook.pdfPath = await savePdf(textbook.id, bytes);
+      await _store.persist();
+      if (mounted) _refreshList();
+      return;
+    }
+
+    String content;
+    try {
+      content = utf8.decode(await file.readAsBytes(), allowMalformed: true);
+    } catch (e) {
       if (!mounted) return;
-      if (content.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('未能从 PDF 中提取文本（可能是扫描件，未包含文字层）'),
-          ),
-        );
-        return;
-      }
-    } else {
-      try {
-        content = utf8.decode(await file.readAsBytes(), allowMalformed: true);
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('读取文件失败: $e')),
-        );
-        return;
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('读取文件失败: $e')),
+      );
+      return;
     }
 
     if (!mounted) return;
@@ -228,6 +201,8 @@ class _HomePageState extends State<HomePage>
     );
     if (!mounted || !ok) return;
     _store.deleteEntry(entry);
+    await removePdf(entry.pdfPath);
+    if (!mounted) return;
     _refreshList();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('已删除「${entry.title}」')),

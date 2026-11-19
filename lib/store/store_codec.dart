@@ -14,6 +14,7 @@ Map<String, dynamic> entryToJson(Entry entry) {
     'content': entry.content,
     'images': entry.images.map(base64Encode).toList(),
     'parentId': entry.parentId,
+    'pdfPath': entry.pdfPath,
     'createdAt': entry.createdAt.toIso8601String(),
     'updatedAt': entry.updatedAt.toIso8601String(),
   };
@@ -32,6 +33,7 @@ Entry entryFromJson(Map<String, dynamic> json) {
         .map((image) => base64Decode(image as String))
         .toList(),
     parentId: json['parentId'] as String?,
+    pdfPath: json['pdfPath'] as String?,
     createdAt: DateTime.tryParse(json['createdAt'] as String? ?? ''),
     updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? ''),
   );

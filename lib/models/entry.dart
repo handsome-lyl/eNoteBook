@@ -12,6 +12,7 @@ class Entry {
     this.content = '',
     List<Uint8List>? images,
     this.parentId,
+    this.pdfPath,
     DateTime? createdAt,
     DateTime? updatedAt,
   })  : images = images ?? <Uint8List>[],
@@ -33,6 +34,9 @@ class Entry {
   /// 单页笔记的归属：某个笔记本或教材的 id，null 表示未归属
   String? parentId;
 
+  /// 导入的 PDF 教材文件位置（Android 为本地文件路径，Web 为会话内缓存标记）
+  String? pdfPath;
+
   final DateTime createdAt;
   DateTime updatedAt;
 
@@ -40,6 +44,9 @@ class Entry {
 
   bool get isContainer =>
       kind == EntryKind.notebook || kind == EntryKind.textbook;
+
+  /// 是否按 PDF 原样渲染
+  bool get hasPdf => pdfPath != null && pdfPath!.isNotEmpty;
 }
 
 extension EntryKindText on EntryKind {
