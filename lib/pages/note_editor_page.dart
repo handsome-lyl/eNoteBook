@@ -253,7 +253,7 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
     });
   }
 
-  void _save() {
+  Future<void> _save() async {
     var slotIdx = 0;
     for (final b in _blocks) {
       if (b is TextBlock) {
@@ -276,6 +276,13 @@ class _NoteEditorPageState extends State<NoteEditorPage> {
       ..clear()
       ..addAll(_images);
     widget.note.updatedAt = DateTime.now();
+    final saved = await widget.store.persist();
+    if (!mounted) return;
+    if (!saved) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('本地保存失败：存储空间可能不足')),
+      );
+    }
     Navigator.of(context).pop();
   }
 

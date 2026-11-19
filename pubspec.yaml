@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.1.0+2
+version: 1.2.0+3
 
 environment:
   sdk: ^3.13.4
@@ -35,6 +35,8 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   file_picker: ^13.3.3
+  shared_preferences: ^2.5.6
+  archive: ^4.7.1
 
 dev_dependencies:
   flutter_test:
@@ -46,6 +48,12 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+
+# shared_preferences_android 2.5.x 依赖 jni（内置 CMake 原生构建），
+# 在非 ASCII 用户目录（C:\Users\罗元隆）下 AGP 解析 CMake 回复 JSON 会失败，
+# 因此固定到不依赖 jni 的 2.4.x 版本。
+dependency_overrides:
+  shared_preferences_android: 2.4.28
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

@@ -17,7 +17,9 @@ import 'textbook_reader_page.dart';
 
 /// 主界面：顶部栏 + 内容卡片 + 底部加号（宽屏时改为左侧导航栏）。
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, required this.store});
+
+  final AppStore store;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -25,7 +27,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
-  final AppStore _store = AppStore();
+  AppStore get _store => widget.store;
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -91,31 +93,73 @@ class _HomePageState extends State<HomePage>
       allowedExtensions: const <String>['txt', 'md', 'pdf'],
     );
     if (file == null) return;
+    if (!mounted) return;
     final ext = file.name.toLowerCase().split('.').last;
 
     String content;
-    try {
-      final bytes = await file.readAsBytes();
-      if (ext == 'pdf') {
-        content = extractPdfText(bytes);
-        if (content.isEmpty) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('未能从 PDF 中提取文本（可能使用了内嵌字体）'),
-            ),
-          );
-          return;
-        }
-      } else {
-        content = utf8.decode(bytes, allowMalformed: true);
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('读取文件失败: $e')),
+    if (ext == 'pdf') {
+      final progress = ValueNotifier<int>(0);
+      final totalPages = ValueNotifier<int>(0);
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          title: const Text('正在解析 PDF'),
+          content: ValueListenableBuilder<int>(
+            valueListenable: progress,
+            builder: (context, done, _) {
+              final total = totalPages.value;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 12),
+                  Text(total == 0 ? '正在读取文件结构…' : '已解析 $done / $total 页'),
+                ],
+              );
+            },
+          ),
+        ),
       );
-      return;
+      try {
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+        final bytes = await file.readAsBytes();
+        content = await extractPdfText(
+          bytes,
+          onProgress: (done, total) {
+            progress.value = done;
+            totalPages.value = total;
+          },
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('读取文件失败: $e')),
+        );
+        return;
+      } finally {
+        if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      }
+      if (!mounted) return;
+      if (content.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('未能从 PDF 中提取文本（可能是扫描件，未包含文字层）'),
+          ),
+        );
+        return;
+      }
+    } else {
+      try {
+        content = utf8.decode(await file.readAsBytes(), allowMalformed: true);
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('读取文件失败: $e')),
+        );
+        return;
+      }
     }
 
     if (!mounted) return;

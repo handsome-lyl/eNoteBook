@@ -1,12 +1,43 @@
-import '../models/entry.dart';
+import 'dart:async';
 
-/// 内存数据仓库。
+import '../models/entry.dart';
+import 'entries_storage.dart';
+import 'store_codec.dart';
+
+/// 数据仓库。
 ///
-/// 按需求暂不做持久化：刷新页面后数据回到初始状态。
+/// 传入 [EntriesStorage] 时，每次改动都会把全部条目写入本地存储；
+/// 不传时（单元测试）只做内存存储。
 class AppStore {
-  AppStore() {
+  AppStore([this._storage]) {
     _seed();
   }
+
+  AppStore._(this._storage);
+
+  /// 从本地存储恢复数据；没有存档或存档损坏时写入示例数据。
+  static Future<AppStore> open() async {
+    final storage = EntriesStorage();
+    final store = AppStore._(storage);
+    try {
+      final raw = await storage.read();
+      if (raw != null && raw.isNotEmpty) {
+        store._entries.addAll(decodeEntries(raw));
+      }
+    } catch (_) {
+      store._entries.clear();
+    }
+    if (store._entries.isEmpty) {
+      store._seed();
+      await store.persist();
+    }
+    return store;
+  }
+
+  final EntriesStorage? _storage;
+
+  /// 串行化的保存任务，保证后一次快照不会先于前一次写入
+  Future<bool>? _pendingSave;
 
   final List<Entry> _entries = <Entry>[];
 
@@ -73,6 +104,7 @@ class AppStore {
       content: content,
     );
     _entries.add(entry);
+    unawaited(persist());
     return entry;
   }
 
@@ -83,6 +115,7 @@ class AppStore {
       title: title,
     );
     _entries.add(entry);
+    unawaited(persist());
     return entry;
   }
 
@@ -95,11 +128,35 @@ class AppStore {
       parentId: parentId,
     );
     _entries.add(entry);
+    unawaited(persist());
     return entry;
   }
 
   void touch(Entry entry) {
     entry.updatedAt = DateTime.now();
+    unawaited(persist());
+  }
+
+  /// 把当前全部条目写入本地存储，返回是否成功。
+  ///
+  /// 多次调用会串行执行，最后写入的是最新快照。
+  Future<bool> persist() {
+    final previous = _pendingSave ?? Future<bool>.value(true);
+    final next = previous.then((_) => _writeSnapshot());
+    _pendingSave = next;
+    return next;
+  }
+
+  Future<bool> _writeSnapshot() async {
+    final storage = _storage;
+    if (storage == null) return true;
+    try {
+      await storage.write(encodeEntries(_entries));
+      return true;
+    } catch (_) {
+      // Web 端 localStorage 超出配额等情况
+      return false;
+    }
   }
 
   /// 删除条目。若删除的是笔记本或教材，其下的单页笔记一并删除，
@@ -109,6 +166,7 @@ class AppStore {
     if (entry.isContainer) {
       _entries.removeWhere((e) => e.parentId == entry.id);
     }
+    unawaited(persist());
   }
 
   /// 初始示例数据，便于直接看到动画效果
